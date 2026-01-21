@@ -1,4 +1,122 @@
-# Attention-Is-All-You-Need-Review
-팀 MeatHub의 Attention Is All You Need 논문에 대한 분석 및 구현 과제
+# [Team Project] Attention Is All You Need: Transformer 구현 및 분석
 
-🚀 Attention Is All You Need 논문 분석 및 감성 분류 구현팀 MeatHub의 Transformer 아키텍처 심층 분석 및 PyTorch 기반 구현 프로젝트입니다.1. 이론 분석 (Theoretical Review)🔍 Self-Attention 메커니즘Transformer의 핵심은 입력 문장 내 모든 단어 간의 관계를 한 번에 계산하는 Self-Attention입니다.Q, K, V 생성: 입력 벡터 $X$에 선형 변환 가중치($W_Q, W_K, W_V$)를 곱해 Query, Key, Value를 생성합니다.유사도 계산: $Q$와 $K$의 내적(Dot-product)을 통해 단어 간 연관도를 계산합니다.스케일링: 내적 값이 커짐에 따라 Gradient가 작아지는 현상을 방지하기 위해 $\sqrt{d_k}$로 나누어 정규화합니다.Attention Weights: Softmax를 거쳐 각 단어가 다른 단어에 집중할 확률 분포를 만듭니다.가중합: 최종적으로 Value에 가중치를 곱해 문맥 정보가 담긴 출력을 생성합니다.🏗️ Encoder 아키텍처 흐름전체 인코더는 다음과 같은 흐름으로 $N$번(논문 기준 6층) 반복됩니다.Positional Encoding: 순환 구조(RNN)가 없는 Transformer를 위해 단어의 위치 정보를 추가합니다.Multi-Head Attention: 여러 개의 헤드가 각기 다른 관점에서 정보를 수집합니다.Feed Forward Network: 각 위치에서 독립적으로 정보를 가공합니다.Add & Norm: Residual Connection과 Layer Normalization을 통해 안정적인 학습을 지원합니다.2. PyTorch 구현 (Implementation)Hugging Face의 nn.Transformer를 사용하지 않고, PyTorch의 기초 모듈만을 사용하여 핵심 기능을 직접 구현했습니다.🛠️ 주요 구현 모듈PositionalEncoding: 사인/코사인 주기 함수 기반 위치 임베딩MultiHeadAttention: Q, K, V 분리 및 병렬 어텐션 연산TransformerSentimentModel: 인코더 블록과 분류기(Classifier) 통합3. 미니 실험: IMDB 감성 분류 (Sentiment Analysis)구현한 모델을 사용하여 영화 리뷰의 긍정/부정을 분류하는 실험을 진행했습니다.📊 실험 설정 (Hyperparameters)Dataset: IMDB Movie Reviews (25,000 train / 25,000 test)Tokenizer: bert-base-uncasedd_model: 128num_heads: 8Epochs: 10Learning Rate: 1e-4📈 결과 및 해석학습 결과: 초기 0.69 수준이었던 Loss가 10 Epoch 학습 후 0.44까지 감소하며 수렴했습니다.해석:RNN과 달리 모든 단어를 동시에 참조하므로, 문맥 파악 능력이 뛰어나 감성 키워드를 정확히 포착했습니다.병렬 연산 구조 덕분에 대량의 텍스트 데이터를 효율적으로 처리할 수 있었습니다.4. 트랜스포머의 진화와 확장BERT: Encoder를 활용한 양방향 문맥 이해GPT: Decoder를 활용한 자연스러운 텍스트 생성ViT (Vision Transformer): 이미지 패치를 단어처럼 처리하여 비전 분야로 확장
+논문 정리 블로그 참고: [트랜스포머 논문 리뷰 블로그](https://jangcarru20100919.tistory.com/41)
+
+본 프로젝트는 트랜스포머(Transformer) 아키텍처를 PyTorch로 직접 구현하고, 데이터 규모가 모델의 문맥 파악 능력과 일반화 성능에 미치는 영향을 분석하기 위해 두 차례의 실험을 진행하였습니다.
+
+---
+
+## 1. 논문 구조 리뷰 및 구현 (Core Logic)
+모델 아키텍처는 데이터의 양과 상관없이 논문의 핵심 구조를 모두 반영하여 클래스 단위로 구현되었습니다.
+
+* **Multi-Head Attention**: $d_k$ 스케일링을 포함한 병렬 어텐션 로직 구현.
+* **Positional Encoding**: 삼각함수를 이용한 위치 정보 주입.
+* **Encoder Layers**: Residual Connection 및 Layer Normalization이 포함된 인코더 블록 설계.
+
+---
+
+## 2. 데이터셋 및 실험 설정 (Dataset & Setup)
+* **데이터셋**: IMDB Movie Reviews (이진 분류)
+* **Tokenizer**: `bert-base-uncased` (Max Length: 256)
+* **모델 설정**: $d_{model}=128$, $num\_heads=8$, $num\_layers=2$, $batch\_size=16$
+
+---
+
+## 3. 실험 결과 및 비교 분석 (Experimental Results)
+
+학습 데이터의 규모에 따른 모델의 성능 변화를 아래와 같이 분석하였습니다.
+
+### [실험 1] 샘플링 데이터 학습 (Small Scale)
+* **데이터 규모**: Train 2,000 / Test 500
+* **성능**: 최종 Test Acc **74.20%**
+* **특징**: 강한 긍정/부정 단어는 잘 포착하나, 복잡한 문장 구조에서 한계를 보임.
+* **추론 한계**: *"It was okay, but the ending was a bit disappointing."* 문장을 **긍정(83.33%)**으로 오분류함. (단어 'okay'에 과도하게 집중)
+
+### [실험 2] 전체 데이터 학습 (Full Scale)
+* **데이터 규모**: Train 25,000 / Test 25,000
+* **성능**: 최종 Test Acc **84.10%** (약 10%p 향상)
+* **특징**: 데이터 양이 늘어남에 따라 문장 내 미묘한 뉘앙스와 역접 구조를 명확히 학습함.
+* **추론 개선**: 동일한 문장에 대해 **부정(91.08%)**으로 정확히 분류 성공.
+
+| 실험 항목 | 실험 1 (Sampled) | 실험 2 (Full Dataset) |
+| :--- | :--- | :--- |
+| **학습 데이터 수** | 2,000개 | **25,000개** |
+| **최종 Loss** | 0.3814 | **0.2347** |
+| **Test Accuracy** | 74.20% | **84.10%** |
+| **복합 문장 분류** | 오분류 (긍정 판단) | **정확 분류 (부정 판단)** |
+
+---
+
+## 4. 최종 결과 해석
+1. **데이터 스케일의 중요성**: 동일한 트랜스포머 로직 하에서도 데이터의 양이 늘어남에 따라 모델의 일반화 성능(Generalization)이 크게 향상됨을 확인했습니다.
+2. **문맥 파악 능력 향상**: 실험 2에서 "but" 이후의 부정적인 뉘앙스를 정확히 읽어낸 것은, 충분한 데이터를 통해 Self-Attention 메커니즘이 문장 내 특정 단어('okay')에 매몰되지 않고 전체적인 맥락의 가중치를 올바르게 학습했음을 증명합니다.
+3. **결론**: 본 프로젝트를 통해 직접 구현한 트랜스포머 모델이 대규모 데이터셋에서 실제 논문의 성능 의도와 부합하게 작동함을 확인하였습니다.
+<img width="500" height="756" alt="image" src="https://github.com/user-attachments/assets/7ac95c38-144f-4da4-93a2-f0dd90e584fb" />
+
+---
+
+# 트랜스포머(Transformer) 확장 및 응용 분석
+
+트랜스포머 아키텍처는 2017년 발표 이후 자연어 처리(NLP)를 넘어 컴퓨터 비전, 오디오 등 전 분야를 아우르는 **범용 인공지능의 표준**으로 자리 잡았습니다. 2026년 현재, 트랜스포머는 연산 효율성을 극대화한 하이브리드 구조로 진화하고 있습니다.
+
+---
+
+## 1. 트랜스포머를 응용한 대표적인 구조
+
+트랜스포머는 인코더와 디코더의 활용 방식에 따라 크게 세 가지 방향으로 파생되었습니다.
+
+### **BERT (Bidirectional Encoder Representations from Transformers)**
+* **구조**: 트랜스포머의 **인코더(Encoder)** 블록만 활용합니다.
+* **특징**: 문장의 앞뒤 문맥을 동시에 파악하는 **양방향(Bidirectional)** 학습을 수행합니다.
+* **주요 용도**: 문장 분류, 감성 분석, 질의응답(Q&A) 등 문맥 이해 작업.
+
+### **GPT (Generative Pre-trained Transformer)**
+* **구조**: 트랜스포머의 **디코더(Decoder)** 블록만 활용합니다.
+* **특징**: 이전 단어들을 바탕으로 다음 단어를 예측하는 **단방향(Autoregressive)** 생성 방식을 사용합니다.
+* **주요 용도**: 대화형 AI, 창작, 코드 생성 등 텍스트 생성 작업.
+
+### **ViT (Vision Transformer)**
+* **구조**: 인코더 구조를 이미지 처리에 이식했습니다.
+* **특징**: 이미지를 격자 형태의 **패치(Patch)** 단위로 나누어 텍스트 토큰처럼 처리합니다.
+* **주요 용도**: 이미지 분류, 객체 탐지 등 컴퓨터 비전 작업.
+
+---
+
+## 2. 트랜스포머가 범용 아키텍처가 된 이유
+
+1. **데이터 통합 (Tokenization)**: 어떤 데이터든 '토큰' 단위로 변환하면 동일한 어텐션 메커니즘으로 처리 가능한 범용성을 가집니다.
+2. **강력한 병렬 연산**: RNN과 달리 전체 데이터를 한 번에 처리하여 대규모 GPU 학습에 최적화되어 있습니다.
+3. **확장 법칙 (Scaling Law)**: 모델 크기와 데이터 양을 늘릴수록 성능이 지속적으로 향상되는 특성이 있어 거대 모델 구축에 유리합니다.
+4. **낮은 귀납적 편향 (Low Inductive Bias)**: 데이터의 구조적 제약 없이 관계를 스스로 학습하여 방대한 데이터에서 정교한 패턴을 찾아냅니다.
+
+---
+
+## 3. 트랜스포머 진화 과정 및 비교
+
+### **대표 모델 비교 표**
+
+| 구분 | BERT | GPT | ViT |
+| :--- | :--- | :--- | :--- |
+| **중심 구조** | 인코더 (Encoder) | 디코더 (Decoder) | 인코더 (Encoder) |
+| **학습 방식** | 양방향 문맥 이해 | 단방향 문장 생성 | 이미지 패치 관계 학습 |
+| **입력 단위** | 텍스트 토큰 | 텍스트 토큰 | 이미지 패치 |
+| **핵심 강점** | 정교한 의미 분석 | 자연스러운 문장 생성 | 시각적 특징 추출 |
+
+### **트랜스포머 진화 흐름**
+
+
+
+* **2017 (탄생)**: **Vanilla Transformer** 등장 (Attention Is All You Need).
+* **2018~2019 (분화)**: 이해 중심의 **BERT**와 생성 중심의 **GPT** 시리즈 시작.
+* **2020 (확장)**: 이미지를 처리하는 **ViT** 등장으로 멀티모달 시대 개막.
+* **2021~2024 (거대화)**: **GPT-4**, **Llama** 등 조 단위 파라미터 모델 및 효율적 연산 기법(FlashAttention) 도입.
+* **2025~2026 (하이브리드)**:
+    * **MoE (Mixture of Experts)**: 연산 효율을 높인 전문가 혼합 구조 (DeepSeek 등).
+    * **SSM 결합**: 긴 문맥 처리를 위해 Mamba 구조 등과 결합한 차세대 아키텍처 연구 활발.
+
+---
+
+## 🔎 제출물 구성
+* `transformer_구현2.ipynb`: 소스 코드 및 실험 로그 (Full Data 학습 버전)
+* `transformer_구현1.ipynb`: 소스 코드 및 실험 로그 (small Data 학습 버전)
+* `README.md`: 논문 분석 및 실험 결과 비교 보고서
