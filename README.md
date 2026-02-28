@@ -30,7 +30,7 @@
 * **데이터 규모**: Train 2,000 / Test 500
 * **성능**: 최종 Test Acc **74.20%**
 * **특징**: 강한 긍정/부정 단어는 잘 포착하나, 복잡한 문장 구조에서 한계를 보임.
-* **추론 한계**: *"It was okay, but the ending was a bit disappointing."* 문장을 **긍정(83.33%)**으로 오분류함. (단어 'okay'에 과도하게 집중)
+* **추론 한계**: *"It was okay, but the ending was a bit disappointing."* 문장을 긍정(83.33%)으로 오분류함. (단어 'okay'에 과도하게 집중)
 
 ### [실험 2] 전체 데이터 학습 (Full Scale)
 * **데이터 규모**: Train 25,000 / Test 25,000
